@@ -1,0 +1,42 @@
+name: CI - Lint, Build & Tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  validate:
+    name: Build, Lint & Automated Verification
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        node-version: [22.x]
+
+    steps:
+      - name: Checkout Codebase
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: "npm"
+
+      - name: Install Monorepo Dependencies
+        run: npm ci
+
+      - name: Build All Workspace Packages
+        run: npm run build
+
+      - name: Run Test Suite (Tenant Isolation, 12 Exact Santim Billing Scenarios, SSRF Defense, Rollup Invariance)
+        run: npm test
+
+      - name: Validate Docker Compose Configurations
+        run: |
+          docker compose -f docker/compose.yaml config > /dev/null
+          echo "Dev Compose OK"
+          docker compose -f docker/compose.prod.yaml config > /dev/null
+          echo "Prod Compose OK"

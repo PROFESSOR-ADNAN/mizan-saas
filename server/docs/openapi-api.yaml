@@ -1,0 +1,158 @@
+openapi: 3.1.0
+info:
+  title: Mizan Management REST API
+  description: Multi-tenant management API for sales analytics, organizations, RBAC, dashboards, and billing.
+  version: 1.0.0
+servers:
+  - url: http://localhost:4000/api/v1
+    description: Local Development Server
+  - url: https://api.mizan.et/api/v1
+    description: Production Server
+
+paths:
+  /auth/register:
+    post:
+      summary: Register a new account
+      operationId: registerUser
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name, email, password]
+              properties:
+                name: { type: string }
+                email: { type: string, format: email }
+                password: { type: string, minLength: 8 }
+                orgName: { type: string }
+      responses:
+        '201':
+          description: User created successfully
+        '409':
+          description: User already exists
+
+  /auth/login:
+    post:
+      summary: Login to account
+      operationId: loginUser
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, password]
+              properties:
+                email: { type: string, format: email }
+                password: { type: string }
+                totpCode: { type: string }
+      responses:
+        '200':
+          description: Login successful
+        '401':
+          description: Invalid credentials
+
+  /orgs:
+    get:
+      summary: List user organizations
+      operationId: listOrganizations
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: List of organizations
+    post:
+      summary: Create new organization
+      operationId: createOrganization
+      security:
+        - BearerAuth: []
+      responses:
+        '201':
+          description: Organization created
+
+  /orgs/{orgId}:
+    get:
+      summary: Get organization details
+      operationId: getOrganization
+      parameters:
+        - name: orgId
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: Organization details
+        '404':
+          description: Organization not found
+
+  /orgs/{orgId}/dashboards:
+    get:
+      summary: List dashboards
+      operationId: listDashboards
+      parameters:
+        - name: orgId
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: List of dashboards
+
+  /orgs/{orgId}/analytics/query:
+    get:
+      summary: Query aggregated metrics
+      operationId: queryMetrics
+      parameters:
+        - name: orgId
+          in: path
+          required: true
+          schema: { type: string }
+        - name: metric
+          in: query
+          required: true
+          schema: { type: string, enum: [revenue, expenses, orders, units] }
+        - name: startDate
+          in: query
+          required: true
+          schema: { type: string, format: date-time }
+        - name: endDate
+          in: query
+          required: true
+          schema: { type: string, format: date-time }
+      responses:
+        '200':
+          description: Aggregated data points
+
+  /orgs/{orgId}/billing/meters:
+    get:
+      summary: Get live usage meters
+      operationId: getUsageMeters
+      parameters:
+        - name: orgId
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: Usage meters and quota status
+
+  /orgs/{orgId}/billing/invoices:
+    get:
+      summary: List invoices
+      operationId: listInvoices
+      parameters:
+        - name: orgId
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: Invoices list
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT

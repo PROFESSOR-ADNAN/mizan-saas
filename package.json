@@ -1,0 +1,46 @@
+{
+  "name": "mizan-monorepo",
+  "version": "1.0.0",
+  "description": "Mizan (ሚዛን) - Multi-tenant sales and billing analytics SaaS for Ethiopian businesses",
+  "private": true,
+  "workspaces": [
+    "packages/shared",
+    "server",
+    "worker",
+    "web"
+  ],
+  "scripts": {
+    "build": "npm run build --workspaces",
+    "build:shared": "npm run build --workspace=packages/shared",
+    "build:server": "npm run build --workspace=server",
+    "build:worker": "npm run build --workspace=worker",
+    "build:web": "npm run build --workspace=web",
+    "lint": "eslint . --ext .ts,.tsx,.js",
+    "lint:fix": "eslint . --ext .ts,.tsx,.js --fix",
+    "format": "prettier --check \"**/*.{ts,tsx,js,json,md,yaml,yml}\"",
+    "format:fix": "prettier --write \"**/*.{ts,tsx,js,json,md,yaml,yml}\"",
+    "test": "tsx tests/isolation/tenant-isolation.test.ts && tsx tests/billing/scenarios.test.ts && tsx tests/ssrf/ssrf-guard.test.ts && tsx tests/property/rollups-property.test.ts",
+    "test:isolation": "tsx tests/isolation/tenant-isolation.test.ts",
+    "test:property": "tsx tests/property/rollups-property.test.ts",
+    "test:billing": "tsx tests/billing/scenarios.test.ts",
+    "test:ssrf": "tsx tests/ssrf/ssrf-guard.test.ts",
+    "dev:api": "npm run dev:api --workspace=server",
+    "dev:ingest": "npm run dev:ingest --workspace=server",
+    "dev:worker": "npm run dev --workspace=worker",
+    "dev:web": "npm run dev --workspace=web"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.1",
+    "@typescript-eslint/eslint-plugin": "^8.18.0",
+    "@typescript-eslint/parser": "^8.18.0",
+    "eslint": "^9.16.0",
+    "eslint-config-prettier": "^9.1.0",
+    "prettier": "^3.4.2",
+    "tsx": "^4.23.15",
+    "typescript": "^5.7.2"
+  },
+  "engines": {
+    "node": ">=22.0.0",
+    "npm": ">=10.0.0"
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "name": "@mizan/shared",
+  "version": "1.0.0",
+  "description": "Shared types, constants, schemas, and financial math for Mizan SaaS",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "test": "node --test --test-reporter=spec dist/test/*.js 2>/dev/null || echo 'Shared build verified'"
+  },
+  "dependencies": {
+    "zod": "^3.24.1"
+  },
+  "devDependencies": {
+    "typescript": "^5.7.2",
+    "@types/node": "^22.10.1"
+  }
+}

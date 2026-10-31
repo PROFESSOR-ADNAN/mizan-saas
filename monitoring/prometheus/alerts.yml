@@ -1,0 +1,47 @@
+groups:
+  - name: mizan_slo_alerts
+    rules:
+      - alert: IngestionErrorRateSpike
+        expr: (sum(rate(http_requests_total{status=~"5.."}[5m])) / sum(rate(http_requests_total[5m]))) > 0.005
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Mizan Ingestion 5xx rate exceeded 0.5% SLO threshold"
+          description: "Ingestion API is experiencing elevated server error rates. Current value: {{ $value }}"
+
+      - alert: IngestionHighLatencyP99
+        expr: histogram_quantile(0.99, sum(rate(http_request_duration_seconds_bucket{job="mizan-ingest"}[5m])) by (le)) > 0.05
+        for: 3m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Ingestion p99 latency exceeded 50ms"
+          description: "High ingestion latency detected. Target is < 50ms for sustained 500 evt/s load."
+
+      - alert: ServiceInstanceDown
+        expr: up == 0
+        for: 1m
+        labels:
+          severity: page
+        annotations:
+          summary: "Service instance {{ $labels.instance }} is down"
+          description: "Service has been unreachable for more than 1 minute."
+
+      - alert: WebhookQueueLagging
+        expr: bullmq_queue_waiting_jobs{queue="webhooks"} > 500
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Outbound webhook dispatcher queue backlog"
+          description: "More than 500 webhook deliveries waiting in queue."
+
+      - alert: SSRFBlockedCounterSpike
+        expr: increase(mizan_ssrf_blocked_total[5m]) > 5
+        for: 1m
+        labels:
+          severity: security_high
+        annotations:
+          summary: "Multiple SSRF attempts blocked in worker"
+          description: "Outbound webhook dispatcher rejected private/metadata destination targets."

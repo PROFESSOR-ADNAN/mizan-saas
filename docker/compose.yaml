@@ -1,0 +1,36 @@
+# Mizan Development Docker Compose
+name: mizan-dev
+
+services:
+  mongodb:
+    image: mongo:7.0
+    container_name: mizan-dev-mongodb
+    restart: unless-stopped
+    ports:
+      - "27017:27017"
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: mizan_dev
+      MONGO_INITDB_ROOT_PASSWORD: devpassword123
+    volumes:
+      - mongodb_dev_data:/data/db
+
+  redis:
+    image: redis:7.2-alpine
+    container_name: mizan-dev-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_dev_data:/data
+
+  mailhog:
+    image: mailhog/mailhog:latest
+    container_name: mizan-dev-mailhog
+    restart: unless-stopped
+    ports:
+      - "1025:1025" # SMTP
+      - "8025:8025" # Web UI
+
+volumes:
+  mongodb_dev_data:
+  redis_dev_data:

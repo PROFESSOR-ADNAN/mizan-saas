@@ -1,0 +1,37 @@
+// Grafana Alloy Configuration for Mizan Centralized Logging and Telemetry
+discovery.docker "containers" {
+  host = "unix:///var/run/docker.sock"
+}
+
+loki.source.docker "mizan_logs" {
+  host       = "unix:///var/run/docker.sock"
+  targets    = discovery.docker.containers.targets
+  forward_to = [loki.process.filter_logs.receiver]
+}
+
+loki.process "filter_logs" {
+  forward_to = [loki.write.endpoint.receiver]
+
+  stage.json {
+    expressions = {
+      level = "level",
+      org_id = "orgId",
+      req_id = "requestId",
+      event = "event",
+      message = "msg",
+    }
+  }
+
+  stage.labels {
+    values = {
+      level = "",
+      event = "",
+    }
+  }
+}
+
+loki.write "endpoint" {
+  endpoint {
+    url = sys.env("LOKI_URL")
+  }
+}
