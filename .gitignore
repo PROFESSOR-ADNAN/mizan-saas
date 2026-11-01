@@ -4,7 +4,9 @@ node_modules/
 .pnp.js
 
 # Build artifacts
-dist/
+server/dist/
+worker/dist/
+web/dist/
 build/
 .next/
 out/
@@ -19,6 +21,7 @@ out/
 
 # Exceptions
 !.env.example
+!packages/shared/dist/**
 
 # Logs
 logs/
