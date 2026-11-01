@@ -163,20 +163,18 @@ The Mizan web frontend (`web/`) is built as a lightning-fast React 19 single-pag
 
 ### Step-by-Step Vercel Deployment
 
-1. **Push to GitHub** (Already configured on `PROFESSOR-ADNAN/mizan-saas`).
-2. Log in to [Vercel Dashboard](https://vercel.com) and click **"Add New Project"**.
-3. Import the `PROFESSOR-ADNAN/mizan-saas` GitHub repository.
-4. In the **Project Configuration** settings:
+1. Log in to [Vercel Dashboard](https://vercel.com) and click **"Add New Project"**.
+2. Import the **`PROFESSOR-ADNAN/mizan-saas`** repository.
+3. In the **Project Configuration** settings:
    - **Framework Preset:** Vite
-   - **Root Directory:** Edit and set to `web` (or leave root with the included `vercel.json`).
-   - **Build Command:** `npm run build`
-   - **Output Directory:** `dist`
-5. **Environment Variables:**
-   Add the following environment variable in the Vercel project settings:
-   - `VITE_API_BASE_URL`: `https://api.yourdomain.com` (pointing to your Mizan backend VPS)
-6. Click **Deploy**. Vercel will build the frontend assets and deploy them across its worldwide edge CDN with automatic HTTPS.
+   - **Root Directory:** Click "Edit" and select `web`
+   - **Build Command:** Leave as default (`npm run build`)
+   - **Output Directory:** Leave as default (`dist`)
+4. **Environment Variables:**
+   - `VITE_API_BASE_URL`: `https://api.yourdomain.com` (pointing to your Mizan API)
+5. Click **Deploy**. Vercel will install dependencies and bundle the React 19 SPA in seconds.
 
-*Note: The included root `vercel.json` automatically configures client-side routing rewrites (`"destination": "/index.html"`) so deep linking to dashboards, billing, and settings pages works seamlessly without 404 errors.*
+*Note: The included `web/vercel.json` automatically configures security headers and SPA rewrites (`"destination": "/index.html"`), ensuring deep links to `/dashboard`, `/billing`, `/team`, and other pages load seamlessly without 404s.*
 
 ---
 
