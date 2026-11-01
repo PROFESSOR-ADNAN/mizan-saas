@@ -16,7 +16,7 @@
     "billing:run": "node dist/server/src/scripts/billing-run.js"
   },
   "dependencies": {
-    "@mizan/shared": "*",
+    "@mizan/shared": "file:../packages/shared",
     "express": "^4.21.2",
     "mongoose": "^8.9.1",
     "ioredis": "^5.4.2",
