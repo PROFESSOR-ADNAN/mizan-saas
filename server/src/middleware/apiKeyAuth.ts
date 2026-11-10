@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
-import { UnauthorizedError, ForbiddenError } from '../utils/errors.js';
+import { UnauthorizedError, ForbiddenError, RateLimitError } from '../utils/errors.js';
 import { sha256, validateApiKeyChecksum } from '../utils/crypto.js';
 import { ApiKeyModel } from '../models/ApiKey.js';
 import { OrganizationModel } from '../models/Organization.js';
@@ -87,6 +87,17 @@ export function requireApiKey(requiredScope?: ApiKeyScope) {
       // Check required scope
       if (requiredScope && !keyData.scopes.includes(requiredScope)) {
         throw new ForbiddenError(`API key lacks required scope: ${requiredScope}`);
+      }
+
+      // Enforce per-API-key rate limit (using 1-second Redis bucket)
+      const limitWindow = Math.floor(Date.now() / 1000);
+      const rlKey = `ratelimit:apikey:${keyData.id}:${limitWindow}`;
+      const count = await redis.incr(rlKey);
+      if (count === 1) {
+        await redis.expire(rlKey, 2);
+      }
+      if (count > keyData.rateLimitPerSec) {
+        throw new RateLimitError(`Rate limit of ${keyData.rateLimitPerSec} req/sec exceeded for this API key.`);
       }
 
       req.apiKey = keyData;
