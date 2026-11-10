@@ -15,6 +15,7 @@ import { isRedisConnected } from '../config/redis.js';
 import authRoutes from '../routes/auth.routes.js';
 import orgRoutes from '../routes/org.routes.js';
 import adminRoutes from '../routes/admin.routes.js';
+import ingestRoutes from '../routes/ingest.routes.js';
 
 export const apiApp = express();
 
@@ -113,6 +114,7 @@ apiApp.get('/api/v1/share/:token', shareLinkRateLimiter, async (req: Request, re
 apiApp.use('/api/v1/auth', authRoutes);
 apiApp.use('/api/v1/orgs', orgRoutes);
 apiApp.use('/api/v1/admin', adminRoutes);
+apiApp.use('/ingest/v1', ingestRoutes);
 
 // Catch-all 404 handler
 apiApp.use((req: Request, res: Response) => {
