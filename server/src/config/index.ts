@@ -2,7 +2,7 @@ import { z } from 'zod';
 
 const ConfigSchema = z.object({
   NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
-  PORT_API: z.coerce.number().default(4000),
+  PORT_API: z.coerce.number().default(process.env.PORT ? Number(process.env.PORT) : 4000),
   PORT_INGEST: z.coerce.number().default(4001),
   MONGODB_URI: z.string().default('mongodb://localhost:27017/mizan_dev?replicaSet=rs0'),
   REDIS_URL: z.string().default('redis://localhost:6379'),

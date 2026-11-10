@@ -1,0 +1,93 @@
+# Render Blueprint Specification for Mizan SaaS
+# Docs: https://render.com/docs/blueprint-spec
+services:
+  # 1. Management REST API
+  - type: web
+    name: mizan-api
+    runtime: node
+    plan: starter
+    buildCommand: npm run build:server
+    startCommand: node server/dist/api/index.js
+    healthCheckPath: /healthz
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: MONGODB_URI
+        sync: false
+      - key: REDIS_URL
+        fromDatabase:
+          name: mizan-redis
+          property: connectionString
+      - key: JWT_SECRET
+        generateValue: true
+      - key: REFRESH_TOKEN_SECRET
+        generateValue: true
+      - key: WEBHOOK_SIGNING_MASTER_KEY
+        generateValue: true
+      - key: CHAPA_SECRET_KEY
+        sync: false
+      - key: CHAPA_PUBLIC_KEY
+        sync: false
+      - key: CHAPA_WEBHOOK_SECRET
+        sync: false
+      - key: WEB_BASE_URL
+        sync: false
+
+  # 2. High-Volume Ingestion API
+  - type: web
+    name: mizan-ingest
+    runtime: node
+    plan: starter
+    buildCommand: npm run build:server
+    startCommand: node server/dist/ingest/index.js
+    healthCheckPath: /healthz
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: MONGODB_URI
+        sync: false
+      - key: REDIS_URL
+        fromDatabase:
+          name: mizan-redis
+          property: connectionString
+      - key: INGEST_SAFETY_CAP
+        value: 500000
+
+  # 3. BullMQ Background Worker
+  - type: worker
+    name: mizan-worker
+    runtime: node
+    plan: starter
+    buildCommand: npm run build:worker
+    startCommand: node worker/dist/index.js
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: MONGODB_URI
+        sync: false
+      - key: REDIS_URL
+        fromDatabase:
+          name: mizan-redis
+          property: connectionString
+      - key: WEBHOOK_SIGNING_MASTER_KEY
+        sync: false
+
+  # 4. React 19 Frontend Static Site (Alternative to Vercel)
+  - type: web
+    name: mizan-web
+    runtime: static
+    buildCommand: npm run build:web
+    staticPublishPath: ./web/dist
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
+    envVars:
+      - key: VITE_API_BASE_URL
+        sync: false
+
+databases:
+  # Managed Redis for Quotas, Dirty Buckets & BullMQ
+  - name: mizan-redis
+    plan: starter
+    ipAllowList: []

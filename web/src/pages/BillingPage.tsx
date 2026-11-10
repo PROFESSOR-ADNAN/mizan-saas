@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
-import { apiRequest } from '../api/client.js';
+import { apiRequest, API_BASE } from '../api/client.js';
 import { CreditCard, FileText, CheckCircle2, AlertTriangle, ArrowUpRight, ShieldCheck } from 'lucide-react';
 
 interface BillingPageProps {
@@ -45,7 +45,7 @@ export const BillingPage: React.FC<BillingPageProps> = ({ orgId }) => {
   };
 
   const handleDownloadPdf = (invoiceId: string, invoiceNumber: string) => {
-    window.open(`/api/v1/orgs/${orgId}/billing/invoices/${invoiceId}/pdf`, '_blank');
+    window.open(`${API_BASE}/orgs/${orgId}/billing/invoices/${invoiceId}/pdf`, '_blank');
   };
 
   const percentUsed = metersData?.percentUsed || 0;

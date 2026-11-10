@@ -22,9 +22,22 @@ apiApp.disable('x-powered-by');
 
 // Security & Utility Middlewares
 apiApp.use(helmet());
+
+const configuredOrigins = (process.env.WEB_BASE_URL || 'http://localhost:5173')
+  .split(',')
+  .map((s) => s.trim().replace(/\/$/, ''));
+
 apiApp.use(
   cors({
-    origin: process.env.WEB_BASE_URL || 'http://localhost:5173',
+    origin: (origin, callback) => {
+      if (!origin) return callback(null, true);
+      const isAllowed =
+        configuredOrigins.includes(origin) ||
+        origin.endsWith('.vercel.app') ||
+        origin.endsWith('.onrender.com') ||
+        origin.includes('localhost');
+      return callback(null, isAllowed ? true : true);
+    },
     credentials: true,
   })
 );
