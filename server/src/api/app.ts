@@ -25,11 +25,11 @@ apiApp.use(helmet());
 
 const configuredOrigins = (process.env.WEB_BASE_URL || 'http://localhost:5173')
   .split(',')
-  .map((s) => s.trim().replace(/\/$/, ''));
+  .map((s: string) => s.trim().replace(/\/$/, ''));
 
 apiApp.use(
   cors({
-    origin: (origin, callback) => {
+    origin: (origin: any, callback: any) => {
       if (!origin) return callback(null, true);
       const isAllowed =
         configuredOrigins.includes(origin) ||
@@ -48,7 +48,7 @@ apiApp.use(cookieParser());
 apiApp.use(
   express.json({
     limit: '2mb',
-    verify: (req: any, _res, buf) => {
+    verify: (req: any, _res: any, buf: any) => {
       req.rawBody = buf.toString('utf8');
     },
   })
@@ -58,7 +58,7 @@ apiApp.use(
   pinoHttp({
     logger,
     autoLogging: {
-      ignore: (req) => req.url === '/healthz',
+      ignore: (req: any) => req.url === '/healthz',
     },
   })
 );
