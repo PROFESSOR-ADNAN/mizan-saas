@@ -6,7 +6,7 @@ services:
     name: mizan-api
     runtime: node
     plan: starter
-    buildCommand: npm install && npm run build:server
+    buildCommand: npm install --include=dev && npm run build:server
     startCommand: node server/dist/api/index.js
     healthCheckPath: /healthz
     envVars:
@@ -38,7 +38,7 @@ services:
     name: mizan-ingest
     runtime: node
     plan: starter
-    buildCommand: npm install && npm run build:server
+    buildCommand: npm install --include=dev && npm run build:server
     startCommand: node server/dist/ingest/index.js
     healthCheckPath: /healthz
     envVars:
@@ -58,7 +58,7 @@ services:
     name: mizan-worker
     runtime: node
     plan: starter
-    buildCommand: npm install && npm run build:worker
+    buildCommand: npm install --include=dev && npm run build:worker
     startCommand: node worker/dist/index.js
     envVars:
       - key: NODE_ENV
@@ -76,7 +76,7 @@ services:
   - type: web
     name: mizan-web
     runtime: static
-    buildCommand: npm install && npm run build:web
+    buildCommand: npm install --include=dev && npm run build:web
     staticPublishPath: ./web/dist
     routes:
       - type: rewrite

@@ -29,15 +29,17 @@
     "dev:worker": "npm run dev --workspace=worker",
     "dev:web": "npm run dev --workspace=web"
   },
-  "devDependencies": {
+  "dependencies": {
     "@types/node": "^22.10.1",
+    "typescript": "^5.7.2"
+  },
+  "devDependencies": {
     "@typescript-eslint/eslint-plugin": "^8.18.0",
     "@typescript-eslint/parser": "^8.18.0",
     "eslint": "^9.16.0",
     "eslint-config-prettier": "^9.1.0",
     "prettier": "^3.4.2",
-    "tsx": "^4.23.15",
-    "typescript": "^5.7.2"
+    "tsx": "^4.23.15"
   },
   "engines": {
     "node": ">=22.0.0",
