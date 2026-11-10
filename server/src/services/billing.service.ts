@@ -320,9 +320,12 @@ export class BillingService {
    * Verifies and handles Chapa payment webhook with constant-time HMAC signature check.
    */
   static async handleChapaWebhook(rawBody: string, signature: string, payload: any): Promise<boolean> {
-    // 1. Verify HMAC SHA-256 signature
+    // 1. Verify HMAC SHA-256 signature (or direct secret hash match if sent by Chapa)
     const expectedSignature = signHmac(rawBody, config.CHAPA_WEBHOOK_SECRET);
-    if (!constantTimeCompare(expectedSignature, signature)) {
+    const signatureValid =
+      constantTimeCompare(expectedSignature, signature) ||
+      constantTimeCompare(config.CHAPA_WEBHOOK_SECRET, signature);
+    if (!signatureValid) {
       logger.warn({ signature }, 'FORGED_PAYMENT_WEBHOOK: Signature mismatch');
       return false;
     }

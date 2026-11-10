@@ -80,7 +80,10 @@ apiApp.get('/healthz', (_req: Request, res: Response) => {
 // Chapa Webhook Callback Endpoint (Unauthenticated, verified via HMAC-SHA256)
 apiApp.post('/api/v1/billing/chapa-webhook', async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const signature = (req.headers['x-chapa-signature'] as string) || '';
+    const signature =
+      (req.headers['x-chapa-signature'] as string) ||
+      (req.headers['chapa-signature'] as string) ||
+      '';
     const rawBody = (req as any).rawBody || JSON.stringify(req.body);
 
     const verified = await BillingService.handleChapaWebhook(rawBody, signature, req.body);
