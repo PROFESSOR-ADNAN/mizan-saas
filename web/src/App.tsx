@@ -15,6 +15,7 @@ import { AdminPage } from './pages/AdminPage.js';
 import { LoginPage } from './pages/LoginPage.js';
 import { RegisterPage } from './pages/RegisterPage.js';
 import { PublicSharePage } from './pages/PublicSharePage.js';
+import { LandingPage } from './pages/LandingPage.js';
 import { apiRequest } from './api/client.js';
 
 const queryClient = new QueryClient({
@@ -110,7 +111,7 @@ export const App: React.FC = () => {
           <Route path="/share/:token" element={<PublicSharePage />} />
           <Route path="/admin" element={<AdminPage />} />
           <Route path="/orgs/:orgId/*" element={<MainLayout />} />
-          <Route path="/" element={<Navigate to="/login" replace />} />
+          <Route path="/" element={<LandingPage />} />
         </Routes>
       </BrowserRouter>
     </QueryClientProvider>
