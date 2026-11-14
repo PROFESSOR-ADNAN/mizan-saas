@@ -33,4 +33,13 @@ router.get('/query', requirePermission('data:read'), async (req: Request, res: R
   }
 });
 
+router.get('/branches', requirePermission('data:read'), async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const branches = await AnalyticsService.queryBranchBreakdown(req.orgId!);
+    res.status(200).json({ branches });
+  } catch (err) {
+    next(err);
+  }
+});
+
 export default router;

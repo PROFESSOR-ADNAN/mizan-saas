@@ -26,6 +26,8 @@ export function requireAuth(req: Request, _res: Response, next: NextFunction): v
     token = authHeader.substring(7).trim();
   } else if (req.cookies && req.cookies.access_token) {
     token = req.cookies.access_token;
+  } else if (req.query.token && typeof req.query.token === 'string') {
+    token = req.query.token;
   }
 
   if (!token) {

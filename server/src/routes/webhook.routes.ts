@@ -49,4 +49,31 @@ router.post('/endpoints/:endpointId/test-ping', requirePermission('webhooks:mana
   }
 });
 
+// SSRF Guard Security Verifier Demonstration Endpoint
+router.post('/verify-target-url', async (req: Request, res: Response) => {
+  try {
+    const url = req.body.url;
+    if (!url) {
+      res.status(400).json({ error: 'URL is required' });
+      return;
+    }
+    const { isPrivateOrRestrictedIp } = await import('../utils/ssrfGuard.js');
+    const dns = await import('node:dns/promises');
+    const parsed = new URL(url);
+    const addresses = await dns.lookup(parsed.hostname, { all: true });
+    const blocked = addresses.some((a) => isPrivateOrRestrictedIp(a.address));
+
+    res.status(200).json({
+      url,
+      hostname: parsed.hostname,
+      resolvedIps: addresses.map((a) => a.address),
+      isBlocked: blocked,
+      verdict: blocked ? 'BLOCKED_BY_SSRF_GUARD' : 'PERMITTED_PUBLIC_ENDPOINT',
+      reason: blocked ? 'Resolves to private, loopback, or cloud metadata IP address' : 'Legitimate public IP',
+    });
+  } catch (err: any) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
 export default router;

@@ -1,0 +1,25 @@
+name: Render Cold-Start Keep-Alive Ping
+
+on:
+  schedule:
+    # Run every 10 minutes
+    - cron: '*/10 * * * *'
+  workflow_dispatch:
+
+jobs:
+  ping:
+    name: Ping Render API Server
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping Mizan Backend Health Endpoint
+        run: |
+          echo "Pinging Mizan Render Web Service..."
+          HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" --max-time 15 "https://mizan-api-3lif.onrender.com/healthz" || echo "FAILED")
+          echo "Render Health Endpoint Status: $HTTP_STATUS"
+          if [ "$HTTP_STATUS" = "200" ]; then
+            echo "✅ Mizan API Server is warm and healthy."
+          else
+            echo "⚠️ Health ping returned non-200 code ($HTTP_STATUS), retrying..."
+            sleep 5
+            curl -f --max-time 20 "https://mizan-api-3lif.onrender.com/healthz" || true
+          fi

@@ -16,13 +16,18 @@ import authRoutes from '../routes/auth.routes.js';
 import orgRoutes from '../routes/org.routes.js';
 import adminRoutes from '../routes/admin.routes.js';
 import ingestRoutes from '../routes/ingest.routes.js';
+import { openApiSpec, getSwaggerHtml } from '../docs/openapi.js';
 
 export const apiApp = express();
 
 apiApp.disable('x-powered-by');
 
 // Security & Utility Middlewares
-apiApp.use(helmet());
+apiApp.use(
+  helmet({
+    contentSecurityPolicy: false,
+  })
+);
 
 const configuredOrigins = (process.env.WEB_BASE_URL || 'http://localhost:5173')
   .split(',')
@@ -108,6 +113,17 @@ apiApp.get('/api/v1/share/:token', shareLinkRateLimiter, async (req: Request, re
   } catch (err) {
     next(err);
   }
+});
+
+// Interactive API Documentation (Swagger UI) & OpenAPI Spec
+apiApp.get('/docs', (_req: Request, res: Response) => {
+  res.setHeader('Content-Type', 'text/html; charset=utf-8');
+  res.send(getSwaggerHtml());
+});
+
+apiApp.get('/api/v1/openapi.json', (_req: Request, res: Response) => {
+  res.setHeader('Content-Type', 'application/json');
+  res.json(openApiSpec);
 });
 
 // API Routes

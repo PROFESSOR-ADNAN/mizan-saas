@@ -80,4 +80,20 @@ router.post('/invoices/:invoiceId/pay', requirePermission('billing:manage'), asy
   }
 });
 
+// Simulate Payment in Test Mode (for portfolio review & staging)
+router.post('/invoices/:invoiceId/simulate-payment', requirePermission('billing:manage'), async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const invoice = await invoiceRepo.findById(req.orgId!, req.params.invoiceId);
+    if (!invoice) throw new NotFoundError('Invoice not found');
+    invoice.status = 'paid';
+    invoice.paidAt = new Date();
+    invoice.paymentTxRef = `sim_${Date.now()}`;
+    await invoice.save();
+    await recordAuditLog(req, 'billing.test_payment_simulated', 'Invoice', req.params.invoiceId, { mode: 'sandbox' });
+    res.status(200).json({ success: true, message: 'Invoice marked paid in sandbox simulator mode' });
+  } catch (err) {
+    next(err);
+  }
+});
+
 export default router;

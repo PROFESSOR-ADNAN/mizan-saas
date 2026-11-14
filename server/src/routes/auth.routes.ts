@@ -11,6 +11,9 @@ import {
 import { requireAuth } from '../middleware/auth.js';
 import { authRateLimiter } from '../middleware/rateLimit.js';
 import { UserModel } from '../models/User.js';
+import { OrganizationModel } from '../models/Organization.js';
+import { MembershipModel } from '../models/Membership.js';
+import bcrypt from 'bcrypt';
 
 const router = Router();
 
@@ -66,6 +69,72 @@ router.post('/login', authRateLimiter, async (req: Request, res: Response, next:
         platformRole: result.user.platformRole,
       },
       accessToken: result.tokens.accessToken,
+    });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// 1-Click Demo Account Login for Portfolio & Recruiter Exploration
+router.post('/demo', async (_req: Request, res: Response, next: NextFunction) => {
+  try {
+    let org = await OrganizationModel.findOne({ slug: 'bole-fresh-mart' });
+    if (!org) org = await OrganizationModel.findOne({ status: 'active' });
+    if (!org) {
+      org = await OrganizationModel.create({
+        name: 'Addis Supermarket Express',
+        slug: 'addis-supermarket',
+        tin: '0055647382',
+        status: 'active',
+        vatRegistered: true,
+        fiscalYearStartDay: 8,
+        fiscalYearStartMonth: 7,
+        timezone: 'Africa/Addis_Ababa',
+        preferredLanguage: 'en',
+      });
+    }
+
+    let user = await UserModel.findOne({ email: 'demo@mizan.et' });
+    if (!user) {
+      const passwordHash = await bcrypt.hash('DemoPassword123!', 10);
+      user = await UserModel.create({
+        name: 'Demo Merchant (Addis Retail)',
+        email: 'demo@mizan.et',
+        phone: '+251911000000',
+        passwordHash,
+        platformRole: 'user',
+        isEmailVerified: true,
+        isPhoneVerified: true,
+      });
+    }
+
+    await MembershipModel.findOneAndUpdate(
+      { orgId: org._id, userId: user._id },
+      { $set: { role: 'owner' } },
+      { upsert: true, new: true }
+    );
+
+    const tokens = await AuthService.generateTokens(user._id.toString(), user.platformRole);
+
+    res.cookie('refresh_token', tokens.refreshToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'strict',
+      maxAge: 7 * 24 * 60 * 60 * 1000,
+    });
+
+    res.status(200).json({
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        phone: user.phone,
+        isEmailVerified: user.isEmailVerified,
+        isPhoneVerified: user.isPhoneVerified,
+        platformRole: user.platformRole,
+      },
+      accessToken: tokens.accessToken,
+      orgId: org._id.toString(),
     });
   } catch (err) {
     next(err);

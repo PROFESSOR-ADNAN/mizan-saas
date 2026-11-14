@@ -10,6 +10,27 @@ export const LoginPage: React.FC = () => {
   const [mfaRequired, setMfaRequired] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [isDemoLoading, setIsDemoLoading] = useState(false);
+
+  const handleDemoLogin = async () => {
+    setIsDemoLoading(true);
+    setError(null);
+    try {
+      const res = await apiRequest('/auth/demo', { method: 'POST' });
+      localStorage.setItem('mizan_token', res.accessToken);
+      if (res.orgId) {
+        navigate(`/orgs/${res.orgId}/dashboard`);
+      } else {
+        const orgsRes = await apiRequest('/orgs');
+        const defaultOrgId = orgsRes.organizations?.[0]?.org?._id;
+        navigate(defaultOrgId ? `/orgs/${defaultOrgId}/dashboard` : '/onboarding');
+      }
+    } catch (err: any) {
+      setError(err.message || 'Demo provisioning failed.');
+    } finally {
+      setIsDemoLoading(false);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -109,6 +130,27 @@ export const LoginPage: React.FC = () => {
             {isLoading ? 'Signing In...' : 'Sign In'}
           </button>
         </form>
+
+        <div className="relative my-2">
+          <div className="absolute inset-0 flex items-center">
+            <div className="w-full border-t border-slate-200" />
+          </div>
+          <div className="relative flex justify-center text-xs uppercase">
+            <span className="bg-white px-2 text-slate-400 font-medium">or explore live</span>
+          </div>
+        </div>
+
+        <button
+          type="button"
+          onClick={handleDemoLogin}
+          disabled={isDemoLoading || isLoading}
+          className="w-full py-2.5 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white font-bold rounded-lg text-xs shadow-sm transition flex items-center justify-center space-x-2 disabled:opacity-75"
+        >
+          <span>{isDemoLoading ? 'Provisioning Demo Workspace...' : '⚡ 1-Click Portfolio Demo Login'}</span>
+        </button>
+        <p className="text-[11px] text-center text-slate-400 -mt-2">
+          Instant access to Bole Fresh Mart with 2,000 real Ethiopian transactions
+        </p>
 
         <div className="text-center text-xs text-slate-500">
           Don't have an account?{' '}

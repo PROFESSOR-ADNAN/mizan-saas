@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { apiRequest } from '../api/client.js';
 import {
   TrendingUp,
   ShieldCheck,
@@ -21,6 +22,26 @@ import {
 export const LandingPage: React.FC = () => {
   const navigate = useNavigate();
   const [hasToken, setHasToken] = useState(false);
+  const [isDemoLoading, setIsDemoLoading] = useState(false);
+
+  const handleDemoLogin = async () => {
+    setIsDemoLoading(true);
+    try {
+      const res = await apiRequest('/auth/demo', { method: 'POST' });
+      localStorage.setItem('mizan_token', res.accessToken);
+      if (res.orgId) {
+        navigate(`/orgs/${res.orgId}/dashboard`);
+      } else {
+        const orgsRes = await apiRequest('/orgs');
+        const defaultOrgId = orgsRes.organizations?.[0]?.org?._id;
+        navigate(defaultOrgId ? `/orgs/${defaultOrgId}/dashboard` : '/onboarding');
+      }
+    } catch (err: any) {
+      alert(err.message || 'Demo workspace launch failed.');
+    } finally {
+      setIsDemoLoading(false);
+    }
+  };
 
   useEffect(() => {
     const token = localStorage.getItem('mizan_token');
@@ -56,6 +77,14 @@ export const LandingPage: React.FC = () => {
           </nav>
 
           <div className="flex items-center gap-3">
+            <button
+              onClick={handleDemoLogin}
+              disabled={isDemoLoading}
+              className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 border border-amber-500/30 text-xs font-bold transition-all"
+            >
+              <Zap className="w-3.5 h-3.5 text-amber-400" />
+              {isDemoLoading ? 'Launching...' : '⚡ Live Demo'}
+            </button>
             {hasToken ? (
               <button
                 onClick={() => navigate('/login')}
@@ -107,6 +136,14 @@ export const LandingPage: React.FC = () => {
           </p>
 
           <div className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-4">
+            <button
+              onClick={handleDemoLogin}
+              disabled={isDemoLoading}
+              className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-7 py-3.5 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-slate-950 font-black text-base shadow-xl shadow-amber-500/25 transition-all transform hover:-translate-y-0.5"
+            >
+              <Zap className="w-5 h-5 text-slate-950 fill-current" />
+              {isDemoLoading ? 'Provisioning Live Demo...' : '⚡ Explore Live Demo (Instant Access)'}
+            </button>
             <Link
               to="/register"
               className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-7 py-3.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-base shadow-xl shadow-emerald-500/25 transition-all transform hover:-translate-y-0.5"
@@ -117,7 +154,7 @@ export const LandingPage: React.FC = () => {
               to="/login"
               className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-7 py-3.5 rounded-xl bg-slate-800/90 hover:bg-slate-700 text-white font-semibold text-base border border-slate-700 transition-all"
             >
-              Sign In to Dashboard
+              Sign In
             </Link>
           </div>
 
