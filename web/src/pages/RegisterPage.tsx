@@ -6,6 +6,7 @@ export const RegisterPage: React.FC = () => {
   const navigate = useNavigate();
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
+  const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
   const [orgName, setOrgName] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -19,7 +20,13 @@ export const RegisterPage: React.FC = () => {
     try {
       const res = await apiRequest('/auth/register', {
         method: 'POST',
-        body: JSON.stringify({ name, email, password, orgName: orgName || undefined }),
+        body: JSON.stringify({
+          name,
+          email,
+          phone: phone.trim() || undefined,
+          password,
+          orgName: orgName || undefined,
+        }),
       });
 
       localStorage.setItem('mizan_token', res.accessToken);
@@ -86,6 +93,19 @@ export const RegisterPage: React.FC = () => {
               onChange={(e) => setEmail(e.target.value)}
               className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-emerald-500"
               placeholder="abebe@shop.et"
+            />
+          </div>
+
+          <div>
+            <label className="block text-xs font-semibold text-slate-700 mb-1">
+              Ethiopian Phone Number <span className="text-slate-400 font-normal">(Optional for SMS alerts)</span>
+            </label>
+            <input
+              type="tel"
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
+              className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-emerald-500"
+              placeholder="0912345678 or +251..."
             />
           </div>
 

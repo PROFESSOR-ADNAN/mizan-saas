@@ -3,17 +3,44 @@ export declare const RegisterSchema: z.ZodObject<{
     name: z.ZodString;
     email: z.ZodString;
     password: z.ZodString;
+    phone: z.ZodOptional<z.ZodString>;
     orgName: z.ZodOptional<z.ZodString>;
 }, "strip", z.ZodTypeAny, {
     name: string;
     email: string;
     password: string;
+    phone?: string | undefined;
     orgName?: string | undefined;
 }, {
     name: string;
     email: string;
     password: string;
+    phone?: string | undefined;
     orgName?: string | undefined;
+}>;
+export declare const VerifyEmailSchema: z.ZodObject<{
+    code: z.ZodString;
+}, "strip", z.ZodTypeAny, {
+    code: string;
+}, {
+    code: string;
+}>;
+export declare const SendPhoneOtpSchema: z.ZodObject<{
+    phone: z.ZodString;
+}, "strip", z.ZodTypeAny, {
+    phone: string;
+}, {
+    phone: string;
+}>;
+export declare const VerifyPhoneOtpSchema: z.ZodObject<{
+    phone: z.ZodString;
+    code: z.ZodString;
+}, "strip", z.ZodTypeAny, {
+    phone: string;
+    code: string;
+}, {
+    phone: string;
+    code: string;
 }>;
 export declare const LoginSchema: z.ZodObject<{
     email: z.ZodString;

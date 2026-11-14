@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.CreateShareLinkSchema = exports.CreateWebhookEndpointSchema = exports.IssueCreditNoteSchema = exports.InitPaymentSchema = exports.ChangePlanSchema = exports.MetricQuerySchema = exports.IngestBatchSchema = exports.IngestEventSchema = exports.EventItemSchema = exports.CreateApiKeySchema = exports.CreateDataSourceSchema = exports.CreateTeamSchema = exports.TransferOwnershipSchema = exports.UpdateMemberRoleSchema = exports.InviteMemberSchema = exports.UpdateOrgSchema = exports.CreateOrgSchema = exports.MfaVerifySchema = exports.LoginSchema = exports.RegisterSchema = void 0;
+exports.CreateShareLinkSchema = exports.CreateWebhookEndpointSchema = exports.IssueCreditNoteSchema = exports.InitPaymentSchema = exports.ChangePlanSchema = exports.MetricQuerySchema = exports.IngestBatchSchema = exports.IngestEventSchema = exports.EventItemSchema = exports.CreateApiKeySchema = exports.CreateDataSourceSchema = exports.CreateTeamSchema = exports.TransferOwnershipSchema = exports.UpdateMemberRoleSchema = exports.InviteMemberSchema = exports.UpdateOrgSchema = exports.CreateOrgSchema = exports.MfaVerifySchema = exports.LoginSchema = exports.VerifyPhoneOtpSchema = exports.SendPhoneOtpSchema = exports.VerifyEmailSchema = exports.RegisterSchema = void 0;
 const zod_1 = require("zod");
 // ==========================================
 // Authentication & User Schemas
@@ -9,7 +9,18 @@ exports.RegisterSchema = zod_1.z.object({
     name: zod_1.z.string().min(2).max(100).trim(),
     email: zod_1.z.string().email().toLowerCase().trim(),
     password: zod_1.z.string().min(8).max(128),
+    phone: zod_1.z.string().min(9).max(16).trim().optional(),
     orgName: zod_1.z.string().min(2).max(100).trim().optional(),
+});
+exports.VerifyEmailSchema = zod_1.z.object({
+    code: zod_1.z.string().min(4).max(64).trim(),
+});
+exports.SendPhoneOtpSchema = zod_1.z.object({
+    phone: zod_1.z.string().min(9).max(16).trim(),
+});
+exports.VerifyPhoneOtpSchema = zod_1.z.object({
+    phone: zod_1.z.string().min(9).max(16).trim(),
+    code: zod_1.z.string().length(6).regex(/^\d+$/, 'OTP must be 6 digits'),
 });
 exports.LoginSchema = zod_1.z.object({
     email: zod_1.z.string().email().toLowerCase().trim(),

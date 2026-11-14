@@ -1,7 +1,12 @@
 import mongoose, { Schema, Document } from 'mongoose';
 import { IUser } from '@mizan/shared';
 
-export interface UserDocument extends Omit<IUser, '_id'>, Document {}
+export interface UserDocument extends Omit<IUser, '_id'>, Document {
+  emailVerificationCode?: string;
+  emailVerificationExpires?: Date;
+  phoneVerificationCode?: string;
+  phoneVerificationExpires?: Date;
+}
 
 const UserSchema = new Schema<UserDocument>(
   {
@@ -34,6 +39,31 @@ const UserSchema = new Schema<UserDocument>(
     isEmailVerified: {
       type: Boolean,
       default: false,
+    },
+    phone: {
+      type: String,
+      trim: true,
+      sparse: true,
+    },
+    isPhoneVerified: {
+      type: Boolean,
+      default: false,
+    },
+    emailVerificationCode: {
+      type: String,
+      select: false,
+    },
+    emailVerificationExpires: {
+      type: Date,
+      select: false,
+    },
+    phoneVerificationCode: {
+      type: String,
+      select: false,
+    },
+    phoneVerificationExpires: {
+      type: Date,
+      select: false,
     },
     mfaEnabled: {
       type: Boolean,

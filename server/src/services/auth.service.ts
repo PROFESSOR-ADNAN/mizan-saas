@@ -13,7 +13,10 @@ import { DataSourceModel } from '../models/DataSource.js';
 import { DashboardModel } from '../models/Dashboard.js';
 import { TRIAL_DURATION_DAYS } from '@mizan/shared';
 import { sha256 } from '../utils/crypto.js';
-import { UnauthorizedError, ConflictError, NotFoundError } from '../utils/errors.js';
+import { UnauthorizedError, ConflictError, NotFoundError, BadRequestError } from '../utils/errors.js';
+import { EmailService } from './email.service.js';
+import { SmsService } from './sms.service.js';
+import { logger } from '../utils/logger.js';
 
 const BCRYPT_SALT_ROUNDS = 12;
 
@@ -31,6 +34,7 @@ export class AuthService {
     name: string;
     email: string;
     password: string;
+    phone?: string;
     orgName?: string;
   }): Promise<{ user: UserDocument; tokens: AuthTokens; orgId: string }> {
     const existing = await UserModel.findOne({ email: data.email });
@@ -40,13 +44,42 @@ export class AuthService {
 
     const passwordHash = await bcrypt.hash(data.password, BCRYPT_SALT_ROUNDS);
 
+    const emailCode = Math.floor(100000 + Math.random() * 900000).toString();
+    const emailExpires = new Date(Date.now() + 15 * 60 * 1000);
+
+    let phoneNormalized: string | undefined;
+    let phoneCode: string | undefined;
+    let phoneExpires: Date | undefined;
+
+    if (data.phone) {
+      phoneNormalized = SmsService.normalizeEthiopianPhone(data.phone);
+      phoneCode = Math.floor(100000 + Math.random() * 900000).toString();
+      phoneExpires = new Date(Date.now() + 10 * 60 * 1000);
+    }
+
     const user = await UserModel.create({
       name: data.name,
       email: data.email,
+      phone: phoneNormalized,
       passwordHash,
       platformRole: 'user',
-      isEmailVerified: true, // Auto-verified in local/dev
+      isEmailVerified: false,
+      isPhoneVerified: false,
+      emailVerificationCode: emailCode,
+      emailVerificationExpires: emailExpires,
+      phoneVerificationCode: phoneCode,
+      phoneVerificationExpires: phoneExpires,
     });
+
+    // Asynchronously dispatch verification email and SMS
+    EmailService.sendVerificationEmail(user.email, user.name, emailCode).catch((err) =>
+      logger.warn({ err: err.message }, 'Initial verification email failed to dispatch')
+    );
+    if (phoneNormalized && phoneCode) {
+      SmsService.sendOtp(phoneNormalized, phoneCode).catch((err) =>
+        logger.warn({ err: err.message }, 'Initial verification SMS failed to dispatch')
+      );
+    }
 
     // Generate unique slug
     const orgName = data.orgName || `${data.name}'s Shop`;
@@ -258,6 +291,96 @@ export class AuthService {
 
     user.mfaEnabled = true;
     await user.save();
+    return true;
+  }
+
+  /**
+   * Generates a new 6-digit email verification code and sends it via EmailService.
+   */
+  static async sendEmailVerification(userId: string): Promise<boolean> {
+    const user = await UserModel.findById(userId);
+    if (!user) throw new NotFoundError('User not found');
+    if (user.isEmailVerified) return true;
+
+    const code = Math.floor(100000 + Math.random() * 900000).toString();
+    const expires = new Date(Date.now() + 15 * 60 * 1000);
+
+    user.emailVerificationCode = code;
+    user.emailVerificationExpires = expires;
+    await user.save();
+
+    return EmailService.sendVerificationEmail(user.email, user.name, code);
+  }
+
+  /**
+   * Verifies the user's email using the provided 6-digit code.
+   */
+  static async verifyEmail(userId: string, code: string): Promise<boolean> {
+    const user = await UserModel.findById(userId).select('+emailVerificationCode +emailVerificationExpires');
+    if (!user) throw new NotFoundError('User not found');
+    if (user.isEmailVerified) return true;
+
+    if (!user.emailVerificationCode || user.emailVerificationCode !== code.trim()) {
+      throw new BadRequestError('Invalid email verification code');
+    }
+
+    if (user.emailVerificationExpires && user.emailVerificationExpires.getTime() < Date.now()) {
+      throw new BadRequestError('Email verification code has expired. Please request a new code.');
+    }
+
+    user.isEmailVerified = true;
+    user.emailVerificationCode = undefined;
+    user.emailVerificationExpires = undefined;
+    await user.save();
+
+    EmailService.sendWelcomeEmail(user.email, user.name).catch((err) =>
+      logger.warn({ err: err.message }, 'Failed to dispatch welcome email')
+    );
+
+    return true;
+  }
+
+  /**
+   * Dispatches an SMS OTP via Afro Message.
+   */
+  static async sendPhoneOtp(userId: string, phone: string): Promise<boolean> {
+    const user = await UserModel.findById(userId);
+    if (!user) throw new NotFoundError('User not found');
+
+    const normalized = SmsService.normalizeEthiopianPhone(phone);
+    const code = Math.floor(100000 + Math.random() * 900000).toString();
+    const expires = new Date(Date.now() + 10 * 60 * 1000);
+
+    user.phone = normalized;
+    user.phoneVerificationCode = code;
+    user.phoneVerificationExpires = expires;
+    await user.save();
+
+    return SmsService.sendOtp(normalized, code);
+  }
+
+  /**
+   * Verifies the 6-digit SMS OTP from Afro Message.
+   */
+  static async verifyPhoneOtp(userId: string, phone: string, code: string): Promise<boolean> {
+    const user = await UserModel.findById(userId).select('+phoneVerificationCode +phoneVerificationExpires');
+    if (!user) throw new NotFoundError('User not found');
+
+    const normalized = SmsService.normalizeEthiopianPhone(phone);
+    if (!user.phoneVerificationCode || user.phoneVerificationCode !== code.trim()) {
+      throw new BadRequestError('Invalid SMS OTP verification code');
+    }
+
+    if (user.phoneVerificationExpires && user.phoneVerificationExpires.getTime() < Date.now()) {
+      throw new BadRequestError('SMS OTP verification code has expired. Please request a new code.');
+    }
+
+    user.phone = normalized;
+    user.isPhoneVerified = true;
+    user.phoneVerificationCode = undefined;
+    user.phoneVerificationExpires = undefined;
+    await user.save();
+
     return true;
   }
 }

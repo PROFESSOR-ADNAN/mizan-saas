@@ -1,5 +1,6 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
+import { Link } from 'react-router-dom';
 import { Globe, LogOut, Building, Shield } from 'lucide-react';
 
 interface NavbarProps {
@@ -54,6 +55,16 @@ export const Navbar: React.FC<NavbarProps> = ({
       </div>
 
       <div className="flex items-center space-x-4">
+        {/* Security & Verification */}
+        <Link
+          to="/verify"
+          className="flex items-center space-x-1.5 px-3 py-1.5 rounded-lg border border-slate-200 hover:bg-slate-50 text-xs font-semibold text-slate-700 transition"
+          title="Security & Verification"
+        >
+          <Shield className="w-3.5 h-3.5 text-emerald-600" />
+          <span>Security & Verification</span>
+        </Link>
+
         {/* Language Toggle */}
         <button
           onClick={toggleLanguage}

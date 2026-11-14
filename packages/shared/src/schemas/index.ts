@@ -8,7 +8,21 @@ export const RegisterSchema = z.object({
   name: z.string().min(2).max(100).trim(),
   email: z.string().email().toLowerCase().trim(),
   password: z.string().min(8).max(128),
+  phone: z.string().min(9).max(16).trim().optional(),
   orgName: z.string().min(2).max(100).trim().optional(),
+});
+
+export const VerifyEmailSchema = z.object({
+  code: z.string().min(4).max(64).trim(),
+});
+
+export const SendPhoneOtpSchema = z.object({
+  phone: z.string().min(9).max(16).trim(),
+});
+
+export const VerifyPhoneOtpSchema = z.object({
+  phone: z.string().min(9).max(16).trim(),
+  code: z.string().length(6).regex(/^\d+$/, 'OTP must be 6 digits'),
 });
 
 export const LoginSchema = z.object({

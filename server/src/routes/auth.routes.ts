@@ -1,8 +1,16 @@
 import { Router, Request, Response, NextFunction } from 'express';
 import { AuthService } from '../services/auth.service.js';
-import { RegisterSchema, LoginSchema, MfaVerifySchema } from '@mizan/shared';
+import {
+  RegisterSchema,
+  LoginSchema,
+  MfaVerifySchema,
+  VerifyEmailSchema,
+  SendPhoneOtpSchema,
+  VerifyPhoneOtpSchema,
+} from '@mizan/shared';
 import { requireAuth } from '../middleware/auth.js';
 import { authRateLimiter } from '../middleware/rateLimit.js';
+import { UserModel } from '../models/User.js';
 
 const router = Router();
 
@@ -92,8 +100,68 @@ router.post('/logout', (_req: Request, res: Response) => {
   res.status(200).json({ message: 'Logged out successfully' });
 });
 
-router.get('/me', requireAuth, async (req: Request, res: Response) => {
-  res.status(200).json({ user: req.user });
+router.get('/me', requireAuth, async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const user = await UserModel.findById(req.user!.userId);
+    if (!user) {
+      res.status(404).json({ message: 'User not found' });
+      return;
+    }
+    res.status(200).json({
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        phone: user.phone,
+        isEmailVerified: user.isEmailVerified,
+        isPhoneVerified: user.isPhoneVerified,
+        platformRole: user.platformRole,
+        mfaEnabled: user.mfaEnabled,
+        createdAt: user.createdAt,
+      },
+    });
+  } catch (err) {
+    next(err);
+  }
+});
+
+router.post('/email/send-verification', requireAuth, authRateLimiter, async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const sent = await AuthService.sendEmailVerification(req.user!.userId);
+    res.status(200).json({ success: true, sent, message: 'Verification email sent' });
+  } catch (err) {
+    next(err);
+  }
+});
+
+router.post('/email/verify', requireAuth, authRateLimiter, async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { code } = VerifyEmailSchema.parse(req.body);
+    await AuthService.verifyEmail(req.user!.userId, code);
+    res.status(200).json({ success: true, message: 'Email verified successfully' });
+  } catch (err) {
+    next(err);
+  }
+});
+
+router.post('/phone/send-otp', requireAuth, authRateLimiter, async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { phone } = SendPhoneOtpSchema.parse(req.body);
+    const sent = await AuthService.sendPhoneOtp(req.user!.userId, phone);
+    res.status(200).json({ success: true, sent, message: 'SMS verification OTP dispatched via Afro Message' });
+  } catch (err) {
+    next(err);
+  }
+});
+
+router.post('/phone/verify-otp', requireAuth, authRateLimiter, async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { phone, code } = VerifyPhoneOtpSchema.parse(req.body);
+    await AuthService.verifyPhoneOtp(req.user!.userId, phone, code);
+    res.status(200).json({ success: true, message: 'Phone verified successfully' });
+  } catch (err) {
+    next(err);
+  }
 });
 
 router.post('/mfa/setup', requireAuth, async (req: Request, res: Response, next: NextFunction) => {

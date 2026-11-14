@@ -5,8 +5,10 @@ export interface IUser {
     email: string;
     passwordHash?: string;
     name: string;
+    phone?: string;
     platformRole: PlatformRole;
     isEmailVerified: boolean;
+    isPhoneVerified: boolean;
     mfaEnabled: boolean;
     mfaSecret?: string;
     createdAt: Date;
