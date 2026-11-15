@@ -24,6 +24,10 @@ export class EmailService {
    * Sends a 6-digit email verification code with branded HTML.
    */
   static async sendVerificationEmail(to: string, name: string, code: string): Promise<boolean> {
+    if (!config.SMTP_USER || !config.SMTP_PASS) {
+      logger.warn({ to, code }, 'SMTP credentials not configured in environment variables; skipping email dispatch');
+      return false;
+    }
     try {
       const client = getTransporter();
       const verifyLink = `${config.FRONTEND_URL}/verify?code=${code}&email=${encodeURIComponent(to)}`;
