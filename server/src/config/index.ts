@@ -26,7 +26,7 @@ const ConfigSchema = z.object({
   SMS_API_URL: z.string().default(process.env.SMS_API_URL || 'https://api.afromessage.com/api/send'),
   SMS_API_KEY: z.string().default(process.env.SMS_API_KEY || 'eyJhbGciOiJIUzI1NiJ9.eyJpZGVudGlmaWVyIjoiRHpGbDl2OTR6Y3FrUTJmOHVFb0ZRT05WTWJ3ZU9INW0iLCJleHAiOjE5NTEzODM0NDQsImlhdCI6MTc5MzYxNzA0NCwianRpIjoiYTU0ZWI2ZGMtN2ZmMy00ODhlLThiZjYtYmI5MzQ5ZTI5NTg2In0.5oAQtx7MsPNL518LLYhker_m7jVjUdwTYmncRfexRWM'),
   SMS_SENDER: z.string().optional().default('Mizan'),
-  FRONTEND_URL: z.string().default(process.env.FRONTEND_URL || 'https://mizan-saas.vercel.app'),
+  FRONTEND_URL: z.string().default(process.env.FRONTEND_URL || process.env.WEB_BASE_URL || 'https://mizan-saas.vercel.app'),
   BILLING_ENABLED: z.coerce.boolean().default(true),
   INGEST_SAFETY_CAP: z.coerce.number().default(500000),
   MAX_BATCH_SIZE: z.coerce.number().default(100),
