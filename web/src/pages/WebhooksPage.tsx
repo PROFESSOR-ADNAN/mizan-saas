@@ -43,6 +43,25 @@ export const WebhooksPage: React.FC<WebhooksPageProps> = ({ orgId }) => {
     },
   });
 
+  const { data: dlqData, refetch: refetchDlq } = useQuery({
+    queryKey: ['webhookDlq', orgId],
+    queryFn: async () => {
+      const res = await apiRequest(`/orgs/${orgId}/webhooks/dlq`);
+      return res.deadLetterDeliveries || [];
+    },
+  });
+
+  const handleReplayDlq = async (deliveryId: string) => {
+    try {
+      const res = await apiRequest(`/orgs/${orgId}/webhooks/dlq/${deliveryId}/replay`, { method: 'POST' });
+      alert(res.message || 'Delivery re-queued successfully');
+      refetchDeliveries();
+      refetchDlq();
+    } catch (err: any) {
+      alert(err.message || 'Replay failed');
+    }
+  };
+
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
@@ -271,6 +290,44 @@ export const WebhooksPage: React.FC<WebhooksPageProps> = ({ orgId }) => {
             ))}
           </tbody>
         </table>
+      </div>
+
+      {/* Dead-Letter Queue (DLQ) & Manual Replay Studio (Item 10) */}
+      <div className="bg-white dark:bg-slate-800 rounded-xl border border-rose-200 dark:border-rose-900/60 shadow-sm overflow-hidden">
+        <div className="p-4 border-b border-rose-100 dark:border-rose-900/40 bg-rose-50/50 dark:bg-rose-950/30 flex items-center justify-between">
+          <div className="flex items-center space-x-2 text-rose-900 dark:text-rose-200 font-bold text-sm">
+            <AlertTriangle className="w-4 h-4 text-rose-600 dark:text-rose-400" />
+            <span>Dead-Letter Queue (DLQ) & Manual Replay Studio</span>
+          </div>
+          <span className="text-[11px] font-mono bg-rose-100 dark:bg-rose-900/60 text-rose-800 dark:text-rose-200 px-2 py-0.5 rounded font-semibold">
+            {(dlqData || []).length} Exhausted Deliveries
+          </span>
+        </div>
+        <div className="divide-y divide-slate-100 dark:divide-slate-700/60">
+          {(dlqData || []).map((dlq: any) => (
+            <div key={dlq._id} className="p-4 space-y-2 hover:bg-slate-50 dark:hover:bg-slate-700/30 transition">
+              <div className="flex flex-wrap items-center justify-between gap-2 text-xs">
+                <div className="flex items-center space-x-2">
+                  <span className="px-2 py-0.5 rounded bg-rose-100 dark:bg-rose-950 text-rose-700 dark:text-rose-300 font-bold font-mono text-[10px]">
+                    HTTP {dlq.statusCode}
+                  </span>
+                  <span className="font-mono font-bold text-slate-900 dark:text-white">{dlq.eventType}</span>
+                  <span className="text-slate-400 font-mono">→ {dlq.url}</span>
+                </div>
+                <button
+                  onClick={() => handleReplayDlq(dlq._id)}
+                  className="px-3 py-1 bg-rose-600 hover:bg-rose-700 text-white rounded-lg text-xs font-bold transition flex items-center space-x-1 shadow-sm"
+                >
+                  <Send className="w-3 h-3" />
+                  <span>Replay Delivery</span>
+                </button>
+              </div>
+              <div className="text-[11px] text-rose-700 dark:text-rose-300 font-mono bg-rose-50/50 dark:bg-rose-950/40 p-2 rounded border border-rose-200 dark:border-rose-900/40">
+                {dlq.lastError}
+              </div>
+            </div>
+          ))}
+        </div>
       </div>
 
       {/* Modal */}

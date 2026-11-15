@@ -18,7 +18,10 @@ router.get('/', requirePermission('apikeys:manage'), async (req: Request, res: R
 router.post('/', requirePermission('apikeys:manage'), async (req: Request, res: Response, next: NextFunction) => {
   try {
     const data = CreateApiKeySchema.parse(req.body);
-    const { apiKeyDoc, plaintextKey } = await ApiKeyService.createApiKey(req.orgId!, data);
+    const { apiKeyDoc, plaintextKey } = await ApiKeyService.createApiKey(req.orgId!, {
+      ...data,
+      allowedIps: Array.isArray(req.body.allowedIps) ? req.body.allowedIps : req.body.allowedIps ? [req.body.allowedIps] : undefined,
+    });
     await recordAuditLog(req, 'apikey.created', 'ApiKey', apiKeyDoc._id.toString(), { name: data.name });
 
     res.status(201).json({

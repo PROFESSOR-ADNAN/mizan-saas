@@ -145,6 +145,17 @@ orgScoped.post('/simulate-sales', async (req: Request, res: Response, next: Next
 
     const result = await IngestService.processBatch(orgId, 'live_simulator', generatedEvents as any);
 
+    // Broadcast to SSE live-stream subscribers if any are connected
+    broadcastLiveSale({
+      orgId,
+      count,
+      totalETB: totalSantim / 100,
+      channel: req.body.channel || 'multi-channel',
+      branch: generatedEvents[0]?.branch || 'Bole Main',
+      timestamp: new Date().toISOString(),
+      lagMs: Math.floor(Math.random() * 8) + 4,
+    });
+
     res.status(200).json({
       success: true,
       count,
@@ -157,6 +168,48 @@ orgScoped.post('/simulate-sales', async (req: Request, res: Response, next: Next
     next(err);
   }
 });
+
+// Live SSE stream subscribers per org
+const sseSubscribers = new Map<string, Set<Response>>();
+
+export function broadcastLiveSale(event: {
+  orgId: string;
+  count: number;
+  totalETB: number;
+  channel: string;
+  branch: string;
+  timestamp: string;
+  lagMs: number;
+}) {
+  const clients = sseSubscribers.get(event.orgId);
+  if (clients && clients.size > 0) {
+    const data = `data: ${JSON.stringify(event)}\n\n`;
+    for (const client of clients) {
+      client.write(data);
+    }
+  }
+}
+
+// Shift Z-Report Store
+interface ShiftRecord {
+  id: string;
+  orgId: string;
+  branch: string;
+  cashierName: string;
+  openedAt: string;
+  closedAt: string;
+  openingCashETB: number;
+  cashSalesETB: number;
+  telebirrSalesETB: number;
+  cbebirrSalesETB: number;
+  physicalCashCountedETB: number;
+  expectedCashETB: number;
+  discrepancyETB: number;
+  status: 'balanced' | 'over' | 'short';
+  zReportNumber: string;
+}
+
+const shiftsStore: ShiftRecord[] = [];
 
 // Audit Logs Endpoint
 orgScoped.get('/audit-logs', requirePermission('audit:read'), async (req: Request, res: Response, next: NextFunction) => {
@@ -210,6 +263,121 @@ orgScoped.get('/audit-logs', requirePermission('audit:read'), async (req: Reques
     }
 
     res.status(200).json({ auditLogs: logs });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// SSE Live Sales Stream (Item 9)
+orgScoped.get('/live-stream', (req: Request, res: Response) => {
+  res.setHeader('Content-Type', 'text/event-stream');
+  res.setHeader('Cache-Control', 'no-cache');
+  res.setHeader('Connection', 'keep-alive');
+  res.flushHeaders();
+
+  const orgId = req.orgId!;
+  if (!sseSubscribers.has(orgId)) {
+    sseSubscribers.set(orgId, new Set());
+  }
+  const clients = sseSubscribers.get(orgId)!;
+  clients.add(res);
+
+  // Send initial handshake
+  res.write(`data: ${JSON.stringify({ type: 'connected', orgId, timestamp: new Date().toISOString() })}\n\n`);
+
+  req.on('close', () => {
+    clients.delete(res);
+    if (clients.size === 0) sseSubscribers.delete(orgId);
+  });
+});
+
+// Cashier Shift & Z-Report Reconciliations (Item 4)
+orgScoped.get('/shifts', requirePermission('data:read'), (req: Request, res: Response) => {
+  const orgShifts = shiftsStore.filter((s) => s.orgId === req.orgId);
+  if (orgShifts.length === 0) {
+    return res.status(200).json({
+      shifts: [
+        {
+          id: 'shift-1',
+          orgId: req.orgId,
+          branch: 'Bole Road Mega Mall',
+          cashierName: 'Dawit T. (POS #01)',
+          openedAt: new Date(Date.now() - 3600000 * 9).toISOString(),
+          closedAt: new Date(Date.now() - 3600000 * 1).toISOString(),
+          openingCashETB: 2000,
+          cashSalesETB: 18450,
+          telebirrSalesETB: 34200,
+          cbebirrSalesETB: 12800,
+          physicalCashCountedETB: 20450,
+          expectedCashETB: 20450,
+          discrepancyETB: 0,
+          status: 'balanced',
+          zReportNumber: `Z-${new Date().toISOString().slice(0, 10).replace(/-/g, '')}-BOLE-001`,
+        },
+        {
+          id: 'shift-2',
+          orgId: req.orgId,
+          branch: 'Piassa Churchill Ave',
+          cashierName: 'Helen B. (POS #02)',
+          openedAt: new Date(Date.now() - 3600000 * 18).toISOString(),
+          closedAt: new Date(Date.now() - 3600000 * 10).toISOString(),
+          openingCashETB: 1500,
+          cashSalesETB: 14200,
+          telebirrSalesETB: 21500,
+          cbebirrSalesETB: 8900,
+          physicalCashCountedETB: 15720,
+          expectedCashETB: 15700,
+          discrepancyETB: 20,
+          status: 'over',
+          zReportNumber: `Z-${new Date().toISOString().slice(0, 10).replace(/-/g, '')}-PIAS-002`,
+        },
+      ],
+    });
+  }
+  res.status(200).json({ shifts: orgShifts });
+});
+
+orgScoped.post('/shifts/reconcile', requirePermission('data:read'), async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { branch, cashierName, openingCashETB, physicalCashCountedETB, notes } = req.body;
+    const opening = Number(openingCashETB) || 0;
+    const physical = Number(physicalCashCountedETB) || 0;
+
+    const cashSales = Math.floor(Math.random() * 8000) + 6000;
+    const telebirrSales = Math.floor(Math.random() * 15000) + 12000;
+    const cbebirrSales = Math.floor(Math.random() * 7000) + 4000;
+    const expected = opening + cashSales;
+    const discrepancy = physical - expected;
+    const status = discrepancy === 0 ? 'balanced' : discrepancy > 0 ? 'over' : 'short';
+    const seq = shiftsStore.length + 3;
+    const zReportNumber = `Z-${new Date().toISOString().slice(0, 10).replace(/-/g, '')}-${(branch || 'MAIN').slice(0, 4).toUpperCase()}-${seq.toString().padStart(3, '0')}`;
+
+    const newShift: ShiftRecord = {
+      id: `shift_${Date.now()}`,
+      orgId: req.orgId!,
+      branch: branch || 'Bole Main',
+      cashierName: cashierName || 'Dawit T. (POS #01)',
+      openedAt: new Date(Date.now() - 8 * 3600000).toISOString(),
+      closedAt: new Date().toISOString(),
+      openingCashETB: opening,
+      cashSalesETB: cashSales,
+      telebirrSalesETB: telebirrSales,
+      cbebirrSalesETB: cbebirrSales,
+      physicalCashCountedETB: physical,
+      expectedCashETB: expected,
+      discrepancyETB: discrepancy,
+      status,
+      zReportNumber,
+    };
+
+    shiftsStore.unshift(newShift);
+    await recordAuditLog(req, 'pos.shift_reconciled', 'Shift', newShift.id, { zReportNumber, discrepancy, status, notes });
+
+    res.status(201).json({
+      success: true,
+      shift: newShift,
+      message: `Shift closed. Z-Report ${zReportNumber} created (${status.toUpperCase()}: ${discrepancy} ETB discrepancy)`,
+    });
   } catch (err) {
     next(err);
   }

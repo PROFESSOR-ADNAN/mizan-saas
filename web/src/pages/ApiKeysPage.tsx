@@ -11,6 +11,7 @@ export const ApiKeysPage: React.FC<ApiKeysPageProps> = ({ orgId }) => {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [keyName, setKeyName] = useState('');
   const [scope, setScope] = useState<'ingest:write' | 'data:read'>('ingest:write');
+  const [allowedIpsInput, setAllowedIpsInput] = useState('');
   const [createdKey, setCreatedKey] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const [snippetTab, setSnippetTab] = useState<'curl' | 'js' | 'python'>('curl');
@@ -26,15 +27,21 @@ export const ApiKeysPage: React.FC<ApiKeysPageProps> = ({ orgId }) => {
   const handleCreateKey = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
+      const parsedIps = allowedIpsInput
+        ? allowedIpsInput.split(',').map((s) => s.trim()).filter(Boolean)
+        : undefined;
+
       const res = await apiRequest(`/orgs/${orgId}/apikeys`, {
         method: 'POST',
         body: JSON.stringify({
           name: keyName,
           scopes: [scope],
+          allowedIps: parsedIps,
         }),
       });
       setCreatedKey(res.plaintextKey);
       setKeyName('');
+      setAllowedIpsInput('');
       refetch();
     } catch (err: any) {
       alert(err.message || 'Failed to create key');
@@ -293,6 +300,22 @@ print("Ingestion Status:", res.status_code, res.json())`,
                   <option value="ingest:write">Ingest Only (ingest:write) - Recommended for POS</option>
                   <option value="data:read">Read Analytics (data:read) - For Dashboards & BI</option>
                 </select>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                  Granular IP Whitelist / CIDR Subnets (Optional)
+                </label>
+                <input
+                  type="text"
+                  placeholder="e.g. 196.188.0.0/16, 10.0.0.1, 127.0.0.1"
+                  value={allowedIpsInput}
+                  onChange={(e) => setAllowedIpsInput(e.target.value)}
+                  className="w-full border border-slate-200 dark:border-slate-700 dark:bg-slate-900 dark:text-white rounded-lg px-3 py-2 text-sm font-mono focus:outline-none focus:border-emerald-500"
+                />
+                <span className="text-[10px] text-slate-400 mt-1 block">
+                  Lock POS terminals or backend scripts to specific static IP addresses or CIDR blocks.
+                </span>
               </div>
 
               <div className="flex items-center justify-end space-x-3 pt-2">

@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
-import { Globe, LogOut, Building, Shield, Moon, Sun } from 'lucide-react';
+import { Globe, LogOut, Building, Shield, Moon, Sun, Layers, Activity } from 'lucide-react';
+import { ArchitectureModal } from './ArchitectureModal.js';
 
 interface NavbarProps {
   currentOrg: any;
@@ -17,6 +18,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   onLogout,
 }) => {
   const { t, i18n } = useTranslation();
+  const [showArchModal, setShowArchModal] = useState(false);
   const [isDark, setIsDark] = useState(() => {
     return (
       localStorage.getItem('mizan_theme') === 'dark' ||
@@ -74,7 +76,27 @@ export const Navbar: React.FC<NavbarProps> = ({
         )}
       </div>
 
-      <div className="flex items-center space-x-3">
+      <div className="flex items-center space-x-2.5">
+        {/* Architecture Deep-Dive Button (Item 17) */}
+        <button
+          onClick={() => setShowArchModal(true)}
+          className="hidden md:inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 text-xs font-bold text-slate-700 dark:text-slate-300 transition"
+          title="Explore Enterprise System Architecture"
+        >
+          <Layers className="w-3.5 h-3.5 text-blue-500" />
+          <span>Architecture Deep-Dive</span>
+        </button>
+
+        {/* Public Status Page (Item 16) */}
+        <Link
+          to="/status"
+          className="hidden lg:inline-flex items-center space-x-1.5 px-2.5 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 text-xs font-semibold text-slate-600 dark:text-slate-400 transition"
+          title="Live Infrastructure Status"
+        >
+          <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+          <span>Status</span>
+        </Link>
+
         {/* Security & Verification */}
         <Link
           to="/verify"
@@ -113,6 +135,8 @@ export const Navbar: React.FC<NavbarProps> = ({
           <span className="hidden sm:inline">{t('nav.logout')}</span>
         </button>
       </div>
+
+      <ArchitectureModal isOpen={showArchModal} onClose={() => setShowArchModal(false)} />
     </header>
   );
 };

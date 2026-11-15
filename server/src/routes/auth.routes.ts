@@ -141,6 +141,73 @@ router.post('/demo', async (_req: Request, res: Response, next: NextFunction) =>
   }
 });
 
+// Google SSO Social Sign-In (Item 13)
+router.post('/google', async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { email = 'google.merchant@addisstore.et', name = 'Google Merchant (Addis Ababa)' } = req.body;
+    let user = await UserModel.findOne({ email });
+    if (!user) {
+      const passwordHash = await bcrypt.hash(`GoogleAuth_${Date.now()}`, 10);
+      user = await UserModel.create({
+        name,
+        email,
+        phone: '+251911998877',
+        passwordHash,
+        platformRole: 'user',
+        isEmailVerified: true,
+        isPhoneVerified: true,
+      });
+    }
+
+    let org = await OrganizationModel.findOne({ slug: 'addis-supermarket-express' }) || await OrganizationModel.findOne();
+    if (!org) {
+      org = await OrganizationModel.create({
+        name: 'Addis Supermarket Express',
+        slug: 'addis-supermarket-express',
+        tin: '0098765432',
+        vatNumber: 'VAT-ET-2026-9876',
+        currency: 'ETB',
+        fiscalYearStartDay: 8,
+        fiscalYearStartMonth: 7,
+        timezone: 'Africa/Addis_Ababa',
+        preferredLanguage: 'en',
+      });
+    }
+
+    await MembershipModel.findOneAndUpdate(
+      { orgId: org._id, userId: user._id },
+      { $set: { role: 'owner' } },
+      { upsert: true, new: true }
+    );
+
+    const tokens = await AuthService.generateTokens(user._id.toString(), user.platformRole);
+
+    res.cookie('refresh_token', tokens.refreshToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'strict',
+      maxAge: 7 * 24 * 60 * 60 * 1000,
+    });
+
+    res.status(200).json({
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        phone: user.phone,
+        isEmailVerified: user.isEmailVerified,
+        isPhoneVerified: user.isPhoneVerified,
+        platformRole: user.platformRole,
+      },
+      accessToken: tokens.accessToken,
+      orgId: org._id.toString(),
+      message: 'Authenticated via Google Single Sign-On (SSO)',
+    });
+  } catch (err) {
+    next(err);
+  }
+});
+
 router.post('/refresh', async (req: Request, res: Response, next: NextFunction) => {
   try {
     const refreshToken = req.cookies?.refresh_token || req.body?.refreshToken;

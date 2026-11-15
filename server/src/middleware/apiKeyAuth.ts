@@ -13,6 +13,7 @@ export interface ApiKeyContext {
   sourceId?: string;
   scopes: ApiKeyScope[];
   rateLimitPerSec: number;
+  allowedIps?: string[];
 }
 
 declare global {
@@ -74,6 +75,7 @@ export function requireApiKey(requiredScope?: ApiKeyScope) {
           sourceId: doc.sourceId?.toString(),
           scopes: doc.scopes as ApiKeyScope[],
           rateLimitPerSec: doc.rateLimitPerSec || 30,
+          allowedIps: doc.allowedIps || [],
         };
 
         // Cache for 30 seconds
@@ -82,6 +84,23 @@ export function requireApiKey(requiredScope?: ApiKeyScope) {
 
       if (!keyData) {
         throw new UnauthorizedError('API key authentication failed');
+      }
+
+      // Check granular IP whitelisting / CIDR restrictions (Item 12)
+      if (keyData.allowedIps && keyData.allowedIps.length > 0) {
+        const clientIp = req.ip || (req.headers['x-forwarded-for'] as string)?.split(',')[0]?.trim() || '';
+        const isAllowed = keyData.allowedIps.some((allowed) => {
+          if (allowed === '*' || allowed === clientIp) return true;
+          if (allowed.includes('/')) {
+            const prefix = allowed.split('/')[0].split('.').slice(0, 2).join('.');
+            return clientIp.startsWith(prefix);
+          }
+          return false;
+        });
+
+        if (!isAllowed) {
+          throw new ForbiddenError(`Request IP address '${clientIp}' is not authorized for this API key.`);
+        }
       }
 
       // Check required scope

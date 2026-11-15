@@ -23,6 +23,7 @@ export class MemberService {
       id: m._id,
       userId: m.userId,
       role: m.role,
+      assignedBranch: m.assignedBranch || 'All Branches',
       user: userMap.get(m.userId.toString()) || { name: 'Unknown', email: '' },
       createdAt: m.createdAt,
     }));
@@ -104,16 +105,21 @@ export class MemberService {
   /**
    * Updates a member's role with last-owner protection.
    */
-  static async updateRole(orgId: string, targetUserId: string, newRole: OrgRole): Promise<void> {
+  static async updateRole(orgId: string, targetUserId: string, newRole: OrgRole, assignedBranch?: string): Promise<void> {
     const isSole = await OrgService.isSoleOwner(orgId, targetUserId);
     if (isSole && newRole !== 'owner') {
       throw new AppError('Cannot demote the sole owner of an organization', 400, 'LAST_OWNER_PROTECTION');
     }
 
+    const updateSet: any = { role: newRole };
+    if (assignedBranch !== undefined) {
+      updateSet.assignedBranch = assignedBranch;
+    }
+
     const result = await membershipRepo.updateOne(
       orgId,
       { userId: targetUserId as any },
-      { $set: { role: newRole } }
+      { $set: updateSet }
     );
 
     if (result.matchedCount === 0) {

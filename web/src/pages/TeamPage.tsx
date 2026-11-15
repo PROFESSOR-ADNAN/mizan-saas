@@ -125,6 +125,7 @@ export const TeamPage: React.FC<TeamPageProps> = ({ orgId }) => {
               <th className="py-3 px-4">Member Name</th>
               <th className="py-3 px-4">Email</th>
               <th className="py-3 px-4">Assigned Role</th>
+              <th className="py-3 px-4">Assigned Branch (Item 14)</th>
               <th className="py-3 px-4 text-right">Actions</th>
             </tr>
           </thead>
@@ -151,6 +152,11 @@ export const TeamPage: React.FC<TeamPageProps> = ({ orgId }) => {
                       <option value="viewer">Viewer</option>
                     </select>
                   )}
+                </td>
+                <td className="py-3 px-4">
+                  <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-mono bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300">
+                    {m.assignedBranch || 'All Branches'}
+                  </span>
                 </td>
                 <td className="py-3 px-4 text-right">
                   {m.role !== 'owner' && (

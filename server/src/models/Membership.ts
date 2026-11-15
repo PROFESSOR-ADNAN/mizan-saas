@@ -6,6 +6,7 @@ import { TenantRepository } from '../tenancy/repository.js';
 export interface MembershipDocument extends Omit<IMembership, '_id' | 'orgId' | 'userId'>, Document {
   orgId: mongoose.Types.ObjectId;
   userId: mongoose.Types.ObjectId;
+  assignedBranch?: string;
 }
 
 const MembershipSchema = new Schema<MembershipDocument>(
@@ -26,6 +27,10 @@ const MembershipSchema = new Schema<MembershipDocument>(
       type: String,
       enum: ['owner', 'admin', 'billing', 'analyst', 'viewer'],
       required: true,
+    },
+    assignedBranch: {
+      type: String,
+      trim: true,
     },
   },
   {

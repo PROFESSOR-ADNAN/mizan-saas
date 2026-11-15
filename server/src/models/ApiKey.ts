@@ -6,6 +6,7 @@ import { TenantRepository } from '../tenancy/repository.js';
 export interface ApiKeyDocument extends Omit<IApiKey, '_id' | 'orgId' | 'sourceId'>, Document {
   orgId: mongoose.Types.ObjectId;
   sourceId?: mongoose.Types.ObjectId;
+  allowedIps?: string[];
 }
 
 const ApiKeySchema = new Schema<ApiKeyDocument>(
@@ -47,6 +48,11 @@ const ApiKeySchema = new Schema<ApiKeyDocument>(
       type: Number,
       default: 30,
     },
+    allowedIps: [
+      {
+        type: String,
+      },
+    ],
     lastUsedAt: {
       type: Date,
     },

@@ -16,6 +16,8 @@ import authRoutes from '../routes/auth.routes.js';
 import orgRoutes from '../routes/org.routes.js';
 import adminRoutes from '../routes/admin.routes.js';
 import ingestRoutes from '../routes/ingest.routes.js';
+import forexRoutes from '../routes/forex.routes.js';
+import statusRoutes from '../routes/status.routes.js';
 import { openApiSpec, getSwaggerHtml } from '../docs/openapi.js';
 
 export const apiApp = express();
@@ -130,6 +132,8 @@ apiApp.get('/api/v1/openapi.json', (_req: Request, res: Response) => {
 apiApp.use('/api/v1/auth', authRoutes);
 apiApp.use('/api/v1/orgs', orgRoutes);
 apiApp.use('/api/v1/admin', adminRoutes);
+apiApp.use('/api/v1/forex', forexRoutes);
+apiApp.use('/api/v1/status', statusRoutes);
 apiApp.use('/ingest/v1', ingestRoutes);
 
 // Catch-all 404 handler

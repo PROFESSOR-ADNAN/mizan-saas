@@ -42,4 +42,40 @@ router.get('/branches', requirePermission('data:read'), async (req: Request, res
   }
 });
 
+router.get('/forecast', requirePermission('data:read'), async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const forecast = await AnalyticsService.getDemandForecast(req.orgId!);
+    res.status(200).json({ forecast });
+  } catch (err) {
+    next(err);
+  }
+});
+
+router.get('/anomalies', requirePermission('data:read'), async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const anomalies = await AnalyticsService.detectAnomalies(req.orgId!);
+    res.status(200).json({ anomalies });
+  } catch (err) {
+    next(err);
+  }
+});
+
+router.get('/rfm', requirePermission('data:read'), async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const rfm = await AnalyticsService.getRFMAnalysis(req.orgId!);
+    res.status(200).json(rfm);
+  } catch (err) {
+    next(err);
+  }
+});
+
+router.get('/heatmap', requirePermission('data:read'), async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const heatmap = await AnalyticsService.getTradingHeatmap(req.orgId!);
+    res.status(200).json({ heatmap });
+  } catch (err) {
+    next(err);
+  }
+});
+
 export default router;

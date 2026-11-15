@@ -1,47 +1,38 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-BACKUP_DIR="${BACKUP_DIR:-/backups}"
-TIMESTAMP=$(date -u +"%Y%m%d_%H%M%SZ")
-BACKUP_NAME="mizan_mongodb_${TIMESTAMP}"
-BACKUP_ARCHIVE="${BACKUP_DIR}/${BACKUP_NAME}.archive.gz"
-BACKUP_ENC="${BACKUP_ARCHIVE}.enc"
-LOG_FILE="${BACKUP_DIR}/backup.log"
+# Mizan Automated MongoDB Backup Script
+# Usage: ./scripts/backup.sh [destination_dir]
 
-mkdir -p "$BACKUP_DIR"
+DEST_DIR="${1:-./backups}"
+TIMESTAMP=$(date +"%Y%m%d_%H%M%S")
+BACKUP_NAME="mizan_backup_${TIMESTAMP}.tar.gz"
+TEMP_DIR="/tmp/mizan_dump_${TIMESTAMP}"
 
-echo "=== Mizan Backup Started: ${TIMESTAMP} ===" | tee -a "$LOG_FILE"
-START_TIME=$(date +%s)
+echo "=================================================="
+echo " Starting Mizan Database Backup: ${TIMESTAMP}"
+echo "=================================================="
 
-# Execute mongodump into compressed archive
-MONGO_URI="${MONGODB_URI:-mongodb://localhost:27017/mizan_prod}"
-echo "Dumping MongoDB databases..." | tee -a "$LOG_FILE"
+mkdir -p "${DEST_DIR}"
+mkdir -p "${TEMP_DIR}"
 
-mongodump --uri="$MONGO_URI" --archive="$BACKUP_ARCHIVE" --gzip
-
-RAW_SIZE=$(du -h "$BACKUP_ARCHIVE" | cut -f1)
-echo "Unencrypted backup size: ${RAW_SIZE}" | tee -a "$LOG_FILE"
-
-# Encrypt backup with OpenSSL AES-256-CBC if ENCRYPTION_KEY is provided
-if [ -n "${BACKUP_ENCRYPTION_KEY:-}" ]; then
-  echo "Encrypting backup with AES-256-CBC..." | tee -a "$LOG_FILE"
-  openssl enc -aes-256-cbc -salt -pbkdf2 -in "$BACKUP_ARCHIVE" -out "$BACKUP_ENC" -pass "pass:${BACKUP_ENCRYPTION_KEY}"
-  rm -f "$BACKUP_ARCHIVE"
-  FINAL_FILE="$BACKUP_ENC"
-else
-  FINAL_FILE="$BACKUP_ARCHIVE"
+if [ -z "${MONGODB_URI:-}" ]; then
+  echo "Error: MONGODB_URI environment variable is not set." >&2
+  exit 1
 fi
 
-# Generate SHA256 Checksum
-sha256sum "$FINAL_FILE" > "${FINAL_FILE}.sha256"
+echo "--> Dumping MongoDB collections..."
+mongodump --uri="${MONGODB_URI}" --out="${TEMP_DIR}" --gzip
 
-END_TIME=$(date +%s)
-DURATION=$((END_TIME - START_TIME))
+echo "--> Compressing archive..."
+tar -czf "${DEST_DIR}/${BACKUP_NAME}" -C "${TEMP_DIR}" .
 
-echo "Backup completed successfully in ${DURATION}s." | tee -a "$LOG_FILE"
-echo "Artifact: ${FINAL_FILE}" | tee -a "$LOG_FILE"
-echo "Checksum: $(cat "${FINAL_FILE}.sha256")" | tee -a "$LOG_FILE"
+echo "--> Cleaning up temporary files..."
+rm -rf "${TEMP_DIR}"
 
-# Retain last 30 daily backups
-find "$BACKUP_DIR" -name "mizan_mongodb_*.gz*" -mtime +30 -delete
-echo "=== Backup Process Finished ===" | tee -a "$LOG_FILE"
+# Prune backups older than 30 days
+echo "--> Applying 30-day retention policy..."
+find "${DEST_DIR}" -type f -name "mizan_backup_*.tar.gz" -mtime +30 -exec rm {} \;
+
+FILE_SIZE=$(du -h "${DEST_DIR}/${BACKUP_NAME}" | cut -f1)
+echo "✅ Backup completed successfully: ${DEST_DIR}/${BACKUP_NAME} (${FILE_SIZE})"

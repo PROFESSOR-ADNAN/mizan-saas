@@ -16,6 +16,7 @@ export class ApiKeyService {
       scopes: ApiKeyScope[];
       sourceId?: string;
       expiresInDays?: number;
+      allowedIps?: string[];
     }
   ): Promise<{ apiKeyDoc: any; plaintextKey: string }> {
     const { key, keyPrefix, keyHash } = generateApiKey(process.env.NODE_ENV === 'production' ? 'live' : 'test');
@@ -30,6 +31,7 @@ export class ApiKeyService {
       keyPrefix,
       keyHash,
       scopes: data.scopes,
+      allowedIps: data.allowedIps,
       expiresAt,
     });
 

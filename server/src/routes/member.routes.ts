@@ -36,8 +36,8 @@ router.post('/invite', requirePermission('members:manage'), async (req: Request,
 router.patch('/:userId/role', requirePermission('members:manage'), async (req: Request, res: Response, next: NextFunction) => {
   try {
     const data = UpdateMemberRoleSchema.parse(req.body);
-    await MemberService.updateRole(req.orgId!, req.params.userId, data.role);
-    await recordAuditLog(req, 'member.role_updated', 'Membership', req.params.userId, { newRole: data.role });
+    await MemberService.updateRole(req.orgId!, req.params.userId, data.role, req.body.assignedBranch);
+    await recordAuditLog(req, 'member.role_updated', 'Membership', req.params.userId, { newRole: data.role, assignedBranch: req.body.assignedBranch });
     res.status(200).json({ message: 'Member role updated successfully' });
   } catch (err) {
     next(err);
